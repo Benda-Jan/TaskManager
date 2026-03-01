@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /Users/janbenda/Projects/TaskManager_FE && npm run build 2>&1)",
+      "Bash(dotnet add src/TaskManager.API/TaskManager.API.csproj package Microsoft.EntityFrameworkCore.Design 2>&1 | tail -3)",
+      "Bash(dotnet ef migrations add InitialCreate \\\\\n  --project src/TaskManager.Infrastructure \\\\\n  --startup-project src/TaskManager.API \\\\\n  2>&1)",
+      "Bash(dotnet ef database update \\\\\n  --project src/TaskManager.Infrastructure \\\\\n  --startup-project src/TaskManager.API \\\\\n  2>&1)",
+      "Bash(dotnet build 2>&1 | grep \"error CS\")",
+      "Bash(dotnet build 2>&1 | grep -E \"error|Error\")",
+      "Bash(dotnet ef database update \\\\\n  --project src/TaskManager.Infrastructure \\\\\n  --startup-project src/TaskManager.API \\\\\n  -- --environment Development \\\\\n  2>&1)",
+      "Bash(curl -s http://localhost:5000/health 2>&1 && echo \"\" && curl -s -o /dev/null -w \"Keycloak: %{http_code}\" http://localhost:8080/)"
+    ]
+  }
+}
