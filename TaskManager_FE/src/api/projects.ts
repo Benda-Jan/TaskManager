@@ -64,3 +64,39 @@ export function useUpdateProject(id: string) {
     },
   });
 }
+
+export interface StatusInput {
+  name: string;
+  color: string;
+}
+
+export function useCreateStatus(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: StatusInput) => {
+      const { data } = await client.post<{ id: string }>(`/projects/${projectId}/statuses`, input);
+      return data.id;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}
+
+export function useUpdateStatus(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ statusId, ...input }: StatusInput & { statusId: string }) => {
+      await client.put(`/projects/${projectId}/statuses/${statusId}`, input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}
+
+export function useDeleteStatus(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (statusId: string) => {
+      await client.delete(`/projects/${projectId}/statuses/${statusId}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}

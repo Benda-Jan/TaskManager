@@ -26,4 +26,7 @@ public sealed class TaskRepository(AppDbContext context) : ITaskRepository
 
     public void Remove(TaskItem task)
         => context.Tasks.Remove(task);
+
+    public Task<bool> HasTasksForStatusAsync(Guid statusId, CancellationToken cancellationToken = default)
+        => context.Tasks.AnyAsync(t => t.StatusId == statusId, cancellationToken);
 }

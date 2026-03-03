@@ -140,7 +140,7 @@ export default function ProjectBoardPage() {
       </div>
 
       {/* Board area */}
-      <div className="flex-1 overflow-x-auto px-6 py-6">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden px-6 py-6">
         {isLoading && (
           <p className="text-sm text-gray-500">Loading board…</p>
         )}
@@ -157,7 +157,7 @@ export default function ProjectBoardPage() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-4 items-start h-full">
+            <div className="flex gap-4 h-full">
               {statuses.map((status) => (
                 <KanbanColumn
                   key={status.id}

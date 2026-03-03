@@ -2,7 +2,10 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Application.Features.Projects.Commands.CreateProject;
+using TaskManager.Application.Features.Projects.Commands.CreateStatus;
+using TaskManager.Application.Features.Projects.Commands.DeleteStatus;
 using TaskManager.Application.Features.Projects.Commands.UpdateProject;
+using TaskManager.Application.Features.Projects.Commands.UpdateStatus;
 using TaskManager.Application.Features.Projects.Queries.GetMyProjects;
 using TaskManager.Application.Features.Projects.Queries.GetProjectById;
 using TaskManager.Application.Features.Expenses.Queries.GetProjectCategories;
@@ -54,6 +57,36 @@ public sealed class ProjectsController(ISender sender) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id:guid}/statuses")]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> CreateStatus(Guid id, [FromBody] StatusRequest request, CancellationToken cancellationToken)
+    {
+        var statusId = await sender.Send(new CreateStatusCommand(id, request.Name, request.Color), cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id }, new { id = statusId });
+    }
+
+    [HttpPut("{id:guid}/statuses/{statusId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateStatus(Guid id, Guid statusId, [FromBody] StatusRequest request, CancellationToken cancellationToken)
+    {
+        await sender.Send(new UpdateStatusCommand(statusId, request.Name, request.Color), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/statuses/{statusId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteStatus(Guid id, Guid statusId, CancellationToken cancellationToken)
+    {
+        await sender.Send(new DeleteStatusCommand(statusId), cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}/tasks")]
     [ProducesResponseType<IReadOnlyList<TaskDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,3 +116,4 @@ public sealed class ProjectsController(ISender sender) : ControllerBase
 }
 
 public sealed record UpdateProjectRequest(string Name, string? Description, decimal Budget);
+public sealed record StatusRequest(string Name, string Color);
