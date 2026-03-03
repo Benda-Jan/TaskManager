@@ -15,7 +15,7 @@ export default function KanbanColumn({ status, tasks, onAddTask }: KanbanColumnP
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
   return (
-    <div className="flex flex-col w-72 shrink-0">
+    <div className="flex flex-col w-72 shrink-0 h-full">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <span
@@ -31,7 +31,7 @@ export default function KanbanColumn({ status, tasks, onAddTask }: KanbanColumnP
       {/* Task list drop zone */}
       <div
         ref={setNodeRef}
-        className={`flex-1 rounded-lg p-2 space-y-2 min-h-[120px] transition-colors ${
+        className={`flex-1 overflow-y-auto rounded-lg p-2 space-y-2 min-h-[120px] transition-colors ${
           isOver ? 'bg-blue-50 ring-2 ring-blue-200' : 'bg-gray-100'
         }`}
       >

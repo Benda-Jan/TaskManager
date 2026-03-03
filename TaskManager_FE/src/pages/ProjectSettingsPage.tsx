@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, NavLink, Link } from 'react-router-dom';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Pencil, Check } from 'lucide-react';
 import axios from 'axios';
-import { useProject, useUpdateProject } from '@/api/projects';
+import { useProject, useUpdateProject, useCreateStatus, useUpdateStatus, useDeleteStatus } from '@/api/projects';
 import { useProjectCategories, useCreateCategory, useDeleteCategory } from '@/api/expenses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import type { ProjectStatus } from '@/api/types';
 
 export default function ProjectSettingsPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +17,11 @@ export default function ProjectSettingsPage() {
   const updateProject = useUpdateProject(id!);
   const createCategory = useCreateCategory(id!);
   const deleteCategory = useDeleteCategory(id!);
+  const createStatus = useCreateStatus(id!);
+  const updateStatus = useUpdateStatus(id!);
+  const deleteStatus = useDeleteStatus(id!);
 
+  // Project details state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
@@ -36,6 +41,7 @@ export default function ProjectSettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  // Expense groups state
   const [newCatName, setNewCatName] = useState('');
   const [addingCat, setAddingCat] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -57,6 +63,48 @@ export default function ProjectSettingsPage() {
       }
     }
   }
+
+  // Statuses state
+  const [editingStatus, setEditingStatus] = useState<ProjectStatus | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('');
+  const [addingStatus, setAddingStatus] = useState(false);
+  const [newStatusName, setNewStatusName] = useState('');
+  const [newStatusColor, setNewStatusColor] = useState('#6B7280');
+  const [statusDeleteError, setStatusDeleteError] = useState<string | null>(null);
+
+  function startEditStatus(status: ProjectStatus) {
+    setEditingStatus(status);
+    setEditName(status.name);
+    setEditColor(status.color);
+  }
+
+  async function handleSaveStatus() {
+    if (!editingStatus || !editName.trim()) return;
+    await updateStatus.mutateAsync({ statusId: editingStatus.id, name: editName.trim(), color: editColor });
+    setEditingStatus(null);
+  }
+
+  async function handleAddStatus() {
+    if (!newStatusName.trim()) return;
+    await createStatus.mutateAsync({ name: newStatusName.trim(), color: newStatusColor });
+    setNewStatusName('');
+    setNewStatusColor('#6B7280');
+    setAddingStatus(false);
+  }
+
+  async function handleDeleteStatus(statusId: string) {
+    setStatusDeleteError(null);
+    try {
+      await deleteStatus.mutateAsync(statusId);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setStatusDeleteError(err.response.data?.error ?? 'This status has tasks assigned and cannot be deleted.');
+      }
+    }
+  }
+
+  const statuses = [...(project?.statuses ?? [])].sort((a, b) => a.order - b.order);
 
   return (
     <div className="flex flex-col h-full">
@@ -132,6 +180,116 @@ export default function ProjectSettingsPage() {
               {saved && <span className="text-xs text-green-600">Saved</span>}
             </div>
           </div>
+        </section>
+
+        <section className="mb-8">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Board statuses</h3>
+          <p className="text-sm text-gray-500 mb-4">Statuses define the columns on the board.</p>
+
+          <div className="flex flex-col gap-2 mb-3">
+            {statuses.length === 0 && (
+              <p className="text-sm text-gray-400 italic">No statuses yet.</p>
+            )}
+            {statuses.map((status) => (
+              editingStatus?.id === status.id ? (
+                <div key={status.id} className="flex items-center gap-2 px-3 py-2 rounded-md border bg-white">
+                  <input
+                    type="color"
+                    value={editColor}
+                    onChange={(e) => setEditColor(e.target.value)}
+                    className="h-6 w-6 rounded cursor-pointer border-0 p-0"
+                  />
+                  <Input
+                    autoFocus
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveStatus();
+                      if (e.key === 'Escape') setEditingStatus(null);
+                    }}
+                    className="h-7 text-sm flex-1"
+                  />
+                  <button
+                    onClick={handleSaveStatus}
+                    disabled={!editName.trim() || updateStatus.isPending}
+                    className="text-green-600 hover:text-green-700 p-0.5 rounded transition-colors"
+                    aria-label="Save"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={() => setEditingStatus(null)}
+                    className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors"
+                    aria-label="Cancel"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div key={status.id} className="flex items-center justify-between px-3 py-2 rounded-md border bg-white group">
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                    <span className="text-sm text-gray-800">{status.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => startEditStatus(status)}
+                      className="text-gray-400 hover:text-blue-500 transition-colors p-0.5 rounded"
+                      aria-label={`Edit ${status.name}`}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStatus(status.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded"
+                      aria-label={`Delete ${status.name}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              )
+            ))}
+          </div>
+
+          {statusDeleteError && (
+            <p className="text-sm text-red-600 mb-3">{statusDeleteError}</p>
+          )}
+
+          {addingStatus ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={newStatusColor}
+                onChange={(e) => setNewStatusColor(e.target.value)}
+                className="h-7 w-7 rounded cursor-pointer border border-gray-200 p-0.5"
+              />
+              <Input
+                autoFocus
+                value={newStatusName}
+                onChange={(e) => setNewStatusName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddStatus();
+                  if (e.key === 'Escape') { setAddingStatus(false); setNewStatusName(''); }
+                }}
+                placeholder="Status name"
+                className="h-8 text-sm"
+              />
+              <Button size="sm" onClick={handleAddStatus} disabled={!newStatusName.trim() || createStatus.isPending}>
+                Add
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setAddingStatus(false); setNewStatusName(''); }}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingStatus(true)}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              <Plus size={14} /> Add status
+            </button>
+          )}
         </section>
 
         <section>
