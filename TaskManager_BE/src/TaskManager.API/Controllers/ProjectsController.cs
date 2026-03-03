@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Application.Features.Projects.Commands.CreateProject;
 using TaskManager.Application.Features.Projects.Queries.GetMyProjects;
+using TaskManager.Application.Features.Projects.Queries.GetProjectById;
+using TaskManager.Application.Features.Expenses.Queries.GetProjectCategories;
+using TaskManager.Application.Features.Expenses.Queries.GetProjectExpenses;
+using TaskManager.Application.Features.Tasks.Queries.GetProjectTasks;
 
 namespace TaskManager.API.Controllers;
 
@@ -12,18 +16,57 @@ namespace TaskManager.API.Controllers;
 public sealed class ProjectsController(ISender sender) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<ProjectDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ProjectDto>>> GetMyProjects(CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetMyProjectsQuery(), cancellationToken);
         return Ok(result);
     }
 
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<ProjectDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectDetailDto>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetProjectByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Guid>> CreateProject(
         [FromBody] CreateProjectCommand command,
         CancellationToken cancellationToken)
     {
         var id = await sender.Send(command, cancellationToken);
-        return CreatedAtAction(nameof(GetMyProjects), new { }, new { id });
+        return CreatedAtAction(nameof(GetById), new { id }, new { id });
+    }
+
+    [HttpGet("{id:guid}/tasks")]
+    [ProducesResponseType<IReadOnlyList<TaskDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<TaskDto>>> GetTasks(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetProjectTasksQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/expenses")]
+    [ProducesResponseType<IReadOnlyList<ExpenseDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ExpenseDto>>> GetExpenses(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetProjectExpensesQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/expense-categories")]
+    [ProducesResponseType<IReadOnlyList<CategoryDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<CategoryDto>>> GetExpenseCategories(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetProjectCategoriesQuery(id), cancellationToken);
+        return Ok(result);
     }
 }

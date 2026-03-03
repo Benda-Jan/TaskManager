@@ -9,4 +9,5 @@ public interface IExpenseRepository
     Task AddAsync(Expense expense, CancellationToken cancellationToken = default);
     void Update(Expense expense);
     void Remove(Expense expense);
+    Task<bool> HasExpensesForCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
 }

@@ -25,4 +25,7 @@ public sealed class ExpenseRepository(AppDbContext context) : IExpenseRepository
 
     public void Remove(Expense expense)
         => context.Expenses.Remove(expense);
+
+    public Task<bool> HasExpensesForCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default)
+        => context.Expenses.AnyAsync(e => e.CategoryId == categoryId, cancellationToken);
 }
