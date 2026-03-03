@@ -44,3 +44,23 @@ export function useCreateProject() {
     },
   });
 }
+
+export interface UpdateProjectInput {
+  name: string;
+  description?: string;
+  budget: number;
+}
+
+export function useUpdateProject(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: UpdateProjectInput) => {
+      await client.put(`/projects/${id}`, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', id] });
+      queryClient.invalidateQueries({ queryKey: PROJECTS_KEY });
+    },
+  });
+}

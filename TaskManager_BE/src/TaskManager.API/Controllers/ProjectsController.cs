@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Application.Features.Projects.Commands.CreateProject;
+using TaskManager.Application.Features.Projects.Commands.UpdateProject;
 using TaskManager.Application.Features.Projects.Queries.GetMyProjects;
 using TaskManager.Application.Features.Projects.Queries.GetProjectById;
 using TaskManager.Application.Features.Expenses.Queries.GetProjectCategories;
@@ -43,6 +44,16 @@ public sealed class ProjectsController(ISender sender) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProject(Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
+    {
+        await sender.Send(new UpdateProjectCommand(id, request.Name, request.Description, request.Budget), cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}/tasks")]
     [ProducesResponseType<IReadOnlyList<TaskDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -70,3 +81,5 @@ public sealed class ProjectsController(ISender sender) : ControllerBase
         return Ok(result);
     }
 }
+
+public sealed record UpdateProjectRequest(string Name, string? Description, decimal Budget);
