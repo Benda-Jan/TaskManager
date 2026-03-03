@@ -1,19 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, NavLink, Link } from 'react-router-dom';
 import { X, Plus } from 'lucide-react';
 import axios from 'axios';
-import { useProject } from '@/api/projects';
+import { useProject, useUpdateProject } from '@/api/projects';
 import { useProjectCategories, useCreateCategory, useDeleteCategory } from '@/api/expenses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ProjectSettingsPage() {
   const { id } = useParams<{ id: string }>();
   const { data: project } = useProject(id!);
   const { data: categories = [] } = useProjectCategories(id!);
 
+  const updateProject = useUpdateProject(id!);
   const createCategory = useCreateCategory(id!);
   const deleteCategory = useDeleteCategory(id!);
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [budget, setBudget] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (project) {
+      setName(project.name);
+      setDescription(project.description ?? '');
+      setBudget(String(project.budget));
+    }
+  }, [project]);
+
+  async function handleSaveDetails() {
+    await updateProject.mutateAsync({ name, description: description || undefined, budget: Number(budget) });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
 
   const [newCatName, setNewCatName] = useState('');
   const [addingCat, setAddingCat] = useState(false);
@@ -65,6 +86,54 @@ export default function ProjectSettingsPage() {
       </div>
 
       <div className="flex-1 overflow-auto p-6 max-w-lg">
+        <section className="mb-8">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Project details</h3>
+
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Name</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Description</label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional description…"
+                className="text-sm resize-none"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Budget (CZK)</label>
+              <Input
+                type="number"
+                min={0}
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 mt-1">
+              <Button
+                size="sm"
+                onClick={handleSaveDetails}
+                disabled={updateProject.isPending || !name.trim()}
+              >
+                Save
+              </Button>
+              {saved && <span className="text-xs text-green-600">Saved</span>}
+            </div>
+          </div>
+        </section>
+
         <section>
           <h3 className="text-sm font-semibold text-gray-900 mb-1">Expense groups</h3>
           <p className="text-sm text-gray-500 mb-4">Groups let you categorise expenses on the Expenses tab.</p>
