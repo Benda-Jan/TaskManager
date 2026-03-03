@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using FluentValidation;
+using TaskManager.Domain.Exceptions;
 
 namespace TaskManager.API.Middleware;
 
@@ -22,6 +23,20 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { errors }));
+        }
+        catch (NotFoundException ex)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = ex.Message }));
+        }
+        catch (ConflictException ex)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { error = ex.Message }));
         }
         catch (Exception ex)
         {

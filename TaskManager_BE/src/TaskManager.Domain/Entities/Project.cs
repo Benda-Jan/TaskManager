@@ -6,7 +6,7 @@ public sealed class Project
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public decimal Budget { get; private set; }
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "CZK";
     public Guid CreatedByUserId { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public ICollection<ProjectMember> Members { get; private set; } = [];
@@ -25,7 +25,7 @@ public sealed class Project
         Budget = budget;
         CreatedByUserId = createdByUserId;
         CreatedAt = DateTime.UtcNow;
-        Currency = "USD";
+        Currency = "CZK";
     }
 
     public void Update(string name, string? description, decimal budget)
@@ -38,5 +38,10 @@ public sealed class Project
     public void AddMember(Guid userId, Guid invitedByUserId)
     {
         Members.Add(new ProjectMember(Id, userId, invitedByUserId));
+    }
+
+    public void AddStatus(string name, string color, int order)
+    {
+        Statuses.Add(new ProjectStatus(Id, name, color, order));
     }
 }

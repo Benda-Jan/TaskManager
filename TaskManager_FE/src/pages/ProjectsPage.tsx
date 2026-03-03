@@ -76,7 +76,7 @@ export default function ProjectsPage() {
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="budget">Budget (USD)</Label>
+                <Label htmlFor="budget">Budget (CZK)</Label>
                 <Input
                   id="budget"
                   type="number"

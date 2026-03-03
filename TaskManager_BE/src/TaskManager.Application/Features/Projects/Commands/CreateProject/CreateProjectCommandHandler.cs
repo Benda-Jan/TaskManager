@@ -17,6 +17,9 @@ public sealed class CreateProjectCommandHandler(
         var project = new Project(request.Name, request.Description, request.Budget, userId);
 
         project.AddMember(userId, userId);
+        project.AddStatus("To Do",       "#6B7280", 0);
+        project.AddStatus("In Progress", "#3B82F6", 1);
+        project.AddStatus("Done",        "#22C55E", 2);
 
         await projectRepository.AddAsync(project, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
