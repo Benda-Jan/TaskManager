@@ -1,0 +1,15 @@
+{$APP_DOMAIN} {
+    # Forward API requests to the .NET container
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+
+    # Everything else goes to the React SPA
+    handle {
+        reverse_proxy fe:80
+    }
+}
+
+{$KC_HOSTNAME} {
+    reverse_proxy keycloak:8080
+}
