@@ -1,10 +1,24 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { FolderOpen, LogOut } from 'lucide-react';
-import keycloak from '@/auth/keycloak';
+import { useAuthStore } from '@/store/authStore';
+
+function parseEmail(token: string): string {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).email ?? '';
+  } catch {
+    return '';
+  }
+}
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const { accessToken, clearTokens } = useAuthStore();
+  const email = accessToken ? parseEmail(accessToken) : '';
+
   const handleLogout = () => {
-    keycloak.logout({ redirectUri: window.location.origin });
+    clearTokens();
+    navigate('/login');
   };
 
   return (
@@ -12,7 +26,7 @@ export default function Sidebar() {
       <div className="p-4 border-b border-gray-200">
         <h1 className="text-lg font-semibold text-gray-900">TaskManager</h1>
         <p className="text-xs text-gray-500 mt-0.5 truncate">
-          {keycloak.tokenParsed?.email ?? ''}
+          {email}
         </p>
       </div>
 

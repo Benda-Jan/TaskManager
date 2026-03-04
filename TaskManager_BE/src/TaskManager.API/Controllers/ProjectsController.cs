@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManager.Application.Features.Projects.Commands.CreateProject;
 using TaskManager.Application.Features.Projects.Commands.CreateStatus;
 using TaskManager.Application.Features.Projects.Commands.DeleteStatus;
+using TaskManager.Application.Features.Projects.Commands.InviteMember;
+using TaskManager.Application.Features.Projects.Commands.RemoveMember;
 using TaskManager.Application.Features.Projects.Commands.UpdateProject;
 using TaskManager.Application.Features.Projects.Commands.UpdateStatus;
 using TaskManager.Application.Features.Projects.Queries.GetMyProjects;
 using TaskManager.Application.Features.Projects.Queries.GetProjectById;
+using TaskManager.Application.Features.Projects.Queries.GetProjectMembers;
 using TaskManager.Application.Features.Expenses.Queries.GetProjectCategories;
 using TaskManager.Application.Features.Expenses.Queries.GetProjectExpenses;
 using TaskManager.Application.Features.Tasks.Queries.GetProjectTasks;
@@ -113,7 +116,38 @@ public sealed class ProjectsController(ISender sender) : ControllerBase
         var result = await sender.Send(new GetProjectCategoriesQuery(id), cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("{id:guid}/members")]
+    [ProducesResponseType<IReadOnlyList<MemberDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<MemberDto>>> GetMembers(Guid id, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<MemberDto> result = await sender.Send(new GetProjectMembersQuery(id), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/invitations")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> InviteMember(Guid id, [FromBody] InviteMemberRequest request, CancellationToken cancellationToken)
+    {
+        await sender.Send(new InviteMemberCommand(id, request.Email), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/members/{userId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveMember(Guid id, Guid userId, CancellationToken cancellationToken)
+    {
+        await sender.Send(new RemoveMemberCommand(id, userId), cancellationToken);
+        return NoContent();
+    }
 }
 
 public sealed record UpdateProjectRequest(string Name, string? Description, decimal Budget);
 public sealed record StatusRequest(string Name, string Color);
+public sealed record InviteMemberRequest(string Email);

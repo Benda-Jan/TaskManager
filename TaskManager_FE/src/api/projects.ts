@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import client from './client';
-import type { Project, ProjectDetail } from './types';
+import type { Member, Project, ProjectDetail } from './types';
 
 const PROJECTS_KEY = ['projects'];
 
@@ -98,5 +98,36 @@ export function useDeleteStatus(projectId: string) {
       await client.delete(`/projects/${projectId}/statuses/${statusId}`);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}
+
+export function useProjectMembers(projectId: string) {
+  return useQuery<Member[]>({
+    queryKey: ['projects', projectId, 'members'],
+    queryFn: async () => {
+      const { data } = await client.get<Member[]>(`/projects/${projectId}/members`);
+      return data;
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function useInviteMember(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (email: string) => {
+      await client.post(`/projects/${projectId}/invitations`, { email });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'members'] }),
+  });
+}
+
+export function useRemoveMember(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await client.delete(`/projects/${projectId}/members/${userId}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'members'] }),
   });
 }

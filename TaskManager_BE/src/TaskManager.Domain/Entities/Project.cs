@@ -14,6 +14,7 @@ public sealed class Project
     public ICollection<TaskItem> Tasks { get; private set; } = [];
     public ICollection<Expense> Expenses { get; private set; } = [];
     public ICollection<ExpenseCategory> ExpenseCategories { get; private set; } = [];
+    public ICollection<ProjectInvitation> Invitations { get; private set; } = [];
 
     private Project() { }
 

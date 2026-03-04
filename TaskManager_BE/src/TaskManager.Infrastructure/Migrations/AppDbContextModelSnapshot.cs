@@ -114,6 +114,44 @@ namespace TaskManager.Infrastructure.Migrations
                     b.ToTable("Projects");
                 });
 
+            modelBuilder.Entity("TaskManager.Domain.Entities.ProjectInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvitedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("ProjectInvitations");
+                });
+
             modelBuilder.Entity("TaskManager.Domain.Entities.ProjectMember", b =>
                 {
                     b.Property<Guid>("ProjectId")
@@ -162,6 +200,36 @@ namespace TaskManager.Infrastructure.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("ProjectStatuses");
+                });
+
+            modelBuilder.Entity("TaskManager.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("TaskManager.Domain.Entities.TaskAssignee", b =>
@@ -252,6 +320,10 @@ namespace TaskManager.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -289,6 +361,17 @@ namespace TaskManager.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("TaskManager.Domain.Entities.ProjectInvitation", b =>
+                {
+                    b.HasOne("TaskManager.Domain.Entities.Project", "Project")
+                        .WithMany("Invitations")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("TaskManager.Domain.Entities.ProjectMember", b =>
                 {
                     b.HasOne("TaskManager.Domain.Entities.Project", "Project")
@@ -317,6 +400,17 @@ namespace TaskManager.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("TaskManager.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("TaskManager.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaskManager.Domain.Entities.TaskAssignee", b =>
@@ -375,6 +469,8 @@ namespace TaskManager.Infrastructure.Migrations
 
                     b.Navigation("Expenses");
 
+                    b.Navigation("Invitations");
+
                     b.Navigation("Members");
 
                     b.Navigation("Statuses");
@@ -397,6 +493,8 @@ namespace TaskManager.Infrastructure.Migrations
             modelBuilder.Entity("TaskManager.Domain.Entities.User", b =>
                 {
                     b.Navigation("ProjectMemberships");
+
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,6 +1,8 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using TaskManager.API.Middleware;
 using TaskManager.Application;
 using TaskManager.Infrastructure;
@@ -20,23 +22,19 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = builder.Configuration["Keycloak:Authority"];
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.MapInboundClaims = false; // preserve Keycloak claim names (sub, email, etc.)
-        // Keycloak doesn't include the API audience by default unless an Audience
-        // mapper is configured on the client. Issuer + signature validation is sufficient.
-        options.TokenValidationParameters.ValidateAudience = false;
-
-        // In production the API container reaches Keycloak over the internal Docker network
-        // (http://keycloak:8080) while tokens carry the public issuer URL. MetadataAddress
-        // lets us fetch JWKS internally without requiring the public hostname to resolve
-        // inside the container.
-        var metadataAddress = builder.Configuration["Keycloak:MetadataAddress"];
-        if (!string.IsNullOrEmpty(metadataAddress))
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            options.MetadataAddress = metadataAddress;
-            options.RequireHttpsMetadata = false;
-        }
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -73,7 +71,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<UserSyncMiddleware>();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

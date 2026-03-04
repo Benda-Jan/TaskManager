@@ -61,6 +61,14 @@ export interface TaskAssignee {
   assignedAt: string;
 }
 
+export interface Member {
+  userId: string;
+  name: string;
+  email: string;
+  joinedAt: string;
+  isCreator: boolean;
+}
+
 export interface ExpenseCategory {
   id: string;
   projectId: string;
