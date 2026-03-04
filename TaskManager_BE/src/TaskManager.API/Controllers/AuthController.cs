@@ -19,7 +19,7 @@ public sealed class AuthController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new RegisterCommand(request.Email, request.Name, request.Password), ct);
+        AuthDto result = await sender.Send(new RegisterCommand(request.Email, request.Name, request.Password, request.InvitationToken), ct);
         return Ok(result);
     }
 
@@ -28,7 +28,7 @@ public sealed class AuthController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthDto>> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new LoginCommand(request.Email, request.Password), ct);
+        AuthDto result = await sender.Send(new LoginCommand(request.Email, request.Password, request.InvitationToken), ct);
         return Ok(result);
     }
 
@@ -42,6 +42,6 @@ public sealed class AuthController(ISender sender) : ControllerBase
     }
 }
 
-public sealed record RegisterRequest(string Email, string Name, string Password);
-public sealed record LoginRequest(string Email, string Password);
+public sealed record RegisterRequest(string Email, string Name, string Password, string? InvitationToken = null);
+public sealed record LoginRequest(string Email, string Password, string? InvitationToken = null);
 public sealed record RefreshRequest(string Token);

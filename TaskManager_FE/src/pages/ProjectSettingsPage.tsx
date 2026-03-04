@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, NavLink, Link } from 'react-router-dom';
 import { X, Plus, Pencil, Check } from 'lucide-react';
 import axios from 'axios';
-import { useProject, useUpdateProject, useCreateStatus, useUpdateStatus, useDeleteStatus } from '@/api/projects';
+import { useProject, useUpdateProject, useCreateStatus, useUpdateStatus, useDeleteStatus, useProjectMembers, useInviteMember, useRemoveMember } from '@/api/projects';
 import { useProjectCategories, useCreateCategory, useDeleteCategory } from '@/api/expenses';
+import { useAuthStore } from '@/store/authStore';
+import { parseJwtSub } from '@/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +15,7 @@ export default function ProjectSettingsPage() {
   const { id } = useParams<{ id: string }>();
   const { data: project } = useProject(id!);
   const { data: categories = [] } = useProjectCategories(id!);
+  const { data: members = [] } = useProjectMembers(id!);
 
   const updateProject = useUpdateProject(id!);
   const createCategory = useCreateCategory(id!);
@@ -20,6 +23,11 @@ export default function ProjectSettingsPage() {
   const createStatus = useCreateStatus(id!);
   const updateStatus = useUpdateStatus(id!);
   const deleteStatus = useDeleteStatus(id!);
+  const inviteMember = useInviteMember(id!);
+  const removeMember = useRemoveMember(id!);
+
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const currentUserId = accessToken ? parseJwtSub(accessToken) : null;
 
   // Project details state
   const [name, setName] = useState('');
@@ -100,6 +108,39 @@ export default function ProjectSettingsPage() {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         setStatusDeleteError(err.response.data?.error ?? 'This status has tasks assigned and cannot be deleted.');
+      }
+    }
+  }
+
+  // Members state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function handleInvite() {
+    if (!inviteEmail.trim()) return;
+    setInviteError(null);
+    setInviteSuccess(false);
+    try {
+      await inviteMember.mutateAsync(inviteEmail.trim());
+      setInviteEmail('');
+      setInviteSuccess(true);
+      setTimeout(() => setInviteSuccess(false), 3000);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setInviteError(err.response?.data?.error ?? 'Failed to send invitation.');
+      }
+    }
+  }
+
+  async function handleRemoveMember(userId: string) {
+    setRemoveError(null);
+    try {
+      await removeMember.mutateAsync(userId);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setRemoveError(err.response?.data?.error ?? 'Failed to remove member.');
       }
     }
   }
@@ -346,6 +387,65 @@ export default function ProjectSettingsPage() {
               <Plus size={14} /> Add group
             </button>
           )}
+        </section>
+
+        <section className="mt-8">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Members</h3>
+          <p className="text-sm text-gray-500 mb-4">Invite teammates by email. They'll receive a link to join this project.</p>
+
+          <div className="flex flex-col gap-2 mb-4">
+            {members.length === 0 && (
+              <p className="text-sm text-gray-400 italic">No members yet.</p>
+            )}
+            {members.map((member) => {
+              const isCurrentUser = member.userId === currentUserId;
+              const canRemove = !member.isCreator && !isCurrentUser;
+              return (
+                <div key={member.userId} className="flex items-center justify-between px-3 py-2 rounded-md border bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      {member.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {member.name}
+                        {member.isCreator && <span className="ml-1.5 text-xs text-gray-400 font-normal">Owner</span>}
+                        {isCurrentUser && <span className="ml-1.5 text-xs text-gray-400 font-normal">You</span>}
+                      </p>
+                      <p className="text-xs text-gray-500">{member.email}</p>
+                    </div>
+                  </div>
+                  {canRemove && (
+                    <button
+                      onClick={() => handleRemoveMember(member.userId)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded"
+                      aria-label={`Remove ${member.name}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {removeError && <p className="text-sm text-red-600 mb-3">{removeError}</p>}
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(); }}
+              placeholder="colleague@example.com"
+              className="h-8 text-sm"
+            />
+            <Button size="sm" onClick={handleInvite} disabled={!inviteEmail.trim() || inviteMember.isPending}>
+              Send invite
+            </Button>
+          </div>
+          {inviteSuccess && <p className="text-xs text-green-600 mt-2">Invitation sent.</p>}
+          {inviteError && <p className="text-xs text-red-600 mt-2">{inviteError}</p>}
         </section>
       </div>
     </div>

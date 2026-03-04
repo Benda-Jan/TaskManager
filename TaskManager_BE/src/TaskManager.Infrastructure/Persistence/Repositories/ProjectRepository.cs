@@ -20,6 +20,24 @@ public sealed class ProjectRepository(AppDbContext context) : IProjectRepository
     public Task<bool> IsMemberAsync(Guid projectId, Guid userId, CancellationToken cancellationToken = default)
         => context.ProjectMembers.AnyAsync(m => m.ProjectId == projectId && m.UserId == userId, cancellationToken);
 
+    public async Task<IReadOnlyList<(User User, ProjectMember Membership)>> GetMembersAsync(Guid projectId, CancellationToken cancellationToken = default)
+    {
+        List<ProjectMember> members = await context.ProjectMembers
+            .Where(m => m.ProjectId == projectId)
+            .Include(m => m.User)
+            .ToListAsync(cancellationToken);
+
+        return members.Select(m => (m.User, m)).ToList();
+    }
+
+    public async Task RemoveMemberAsync(Guid projectId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        ProjectMember? member = await context.ProjectMembers
+            .FirstOrDefaultAsync(m => m.ProjectId == projectId && m.UserId == userId, cancellationToken);
+        if (member is not null)
+            context.ProjectMembers.Remove(member);
+    }
+
     public async Task AddAsync(Project project, CancellationToken cancellationToken = default)
         => await context.Projects.AddAsync(project, cancellationToken);
 
